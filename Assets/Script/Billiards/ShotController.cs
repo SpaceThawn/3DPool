@@ -195,8 +195,7 @@ public class ShotController : MonoBehaviour
 
     private void UpdatePowerUI()
     {
-        float power =
-            cue.GetPowerPercent();
+        float power = cue.GetPowerPercent();
 
         if (powerBar != null)
         {
@@ -206,8 +205,7 @@ public class ShotController : MonoBehaviour
 
     private void Shoot()
     {
-        float power =
-            cue.GetPowerPercent();
+        float power = cue.GetPowerPercent();
 
         Debug.Log(
             "Release mouse - Power = "

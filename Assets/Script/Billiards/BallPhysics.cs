@@ -101,8 +101,7 @@ public class BallPhysics : MonoBehaviour
         if (rb == null)
             return true;
 
-        return
-            rb.linearVelocity.sqrMagnitude < stopVelocity * stopVelocity;
+        return rb.linearVelocity.sqrMagnitude < stopVelocity * stopVelocity;
     }
 
     public Rigidbody GetRigidbody()
