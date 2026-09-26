@@ -32,12 +32,24 @@ public class BallPhysics : MonoBehaviour
     public float stopVelocity = 0.05f;
     public float stopAngularVelocity = 0.05f;
 
+    [Header("Runtime Velocity")]
+    [SerializeField] private Vector3 linearVelocity;
+    [SerializeField] private Vector3 angularVelocity;
+
+    private void Update()
+    {
+        linearVelocity = rb.linearVelocity;
+        angularVelocity = rb.angularVelocity;
+    }
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
 
         rb.linearDamping = 0.5f;
         rb.angularDamping = 0.05f;
+
+        rb.maxAngularVelocity = 150f;
 
         rb.collisionDetectionMode =
             CollisionDetectionMode.ContinuousDynamic;
@@ -79,6 +91,52 @@ public class BallPhysics : MonoBehaviour
             ForceMode.Impulse
         );
 
+        // ================================
+        // TẠO CHUYỂN ĐỘNG LĂN
+        // ================================
+
+        float radius = 0.09f;
+
+        // Với ForceMode.Impulse:
+        //
+        // Impulse = Mass × ΔVelocity
+        //
+        // Mass của Ball = 1
+        // nên vận tốc tăng thêm ≈ finalForce
+        float linearSpeed =
+            finalForce / rb.mass;
+
+        // Trục xoay vuông góc với hướng chuyển động
+        Vector3 rollingAxis =
+            Vector3.Cross(
+                Vector3.up,
+                direction
+            ).normalized;
+
+        // Điều kiện lăn không trượt:
+        // angularSpeed = linearSpeed / radius
+        float angularSpeed =
+            linearSpeed / radius;
+
+        // Giới hạn theo maxAngularVelocity
+        angularSpeed =
+            Mathf.Min(
+                angularSpeed,
+                rb.maxAngularVelocity
+            );
+
+        rb.angularVelocity =
+            rollingAxis * angularSpeed;
+
+        Debug.Log(
+            "ROLL TEST" +
+            "\nDirection = " + direction +
+            "\nRolling Axis = " + rollingAxis +
+            "\nLinear Speed = " + linearSpeed +
+            "\nAngular Speed = " + angularSpeed +
+            "\nAngular Velocity = " + rb.angularVelocity
+        );
+
         return true;
     }
 
@@ -102,6 +160,45 @@ public class BallPhysics : MonoBehaviour
             return true;
 
         return rb.linearVelocity.sqrMagnitude < stopVelocity * stopVelocity;
+    }
+
+    private void FixedUpdate()
+    {
+        if (rb == null)
+            return;
+
+        Vector3 velocity = rb.linearVelocity;
+
+        // Bỏ vận tốc Y vì bi chỉ chạy trên mặt bàn
+        velocity.y = 0f;
+
+        if (velocity.sqrMagnitude < 0.001f)
+        {
+            return;
+        }
+
+        float speed = velocity.magnitude;
+
+        float radius = 0.09f;
+
+        // Hướng lăn vuông góc với hướng chuyển động
+        Vector3 rollingAxis =
+            Vector3.Cross(
+                Vector3.up,
+                velocity.normalized
+            ).normalized;
+
+        float angularSpeed =
+            speed / radius;
+
+        angularSpeed =
+            Mathf.Min(
+                angularSpeed,
+                rb.maxAngularVelocity
+            );
+
+        rb.angularVelocity =
+            rollingAxis * angularSpeed;
     }
 
     public Rigidbody GetRigidbody()
