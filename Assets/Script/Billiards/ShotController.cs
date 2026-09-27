@@ -160,10 +160,23 @@ public class ShotController : MonoBehaviour
     public float stopAngularVelocity = 0.05f;
     public float stopDelay = 0.15f;
 
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public TurnManager.PlayerTurn playerTurn;
+
+    [Header("Cue Ball")]
+    public CueBallController cueBallController;
+
     private bool waitingForBallToStop = false;
 
     private void Update()
     {
+        if (turnManager == null)
+            return;
+
+        if (!turnManager.IsMyTurn(playerTurn))
+            return;
+
         if (Mouse.current == null)
             return;
 
@@ -291,7 +304,7 @@ public class ShotController : MonoBehaviour
         );
     }
 
-    private IEnumerator WaitForBallToStop()
+    /*private IEnumerator WaitForBallToStop()
     {
         waitingForBallToStop = true;
 
@@ -331,5 +344,87 @@ public class ShotController : MonoBehaviour
         {
             cue.ShowCue();
         }
+    }*/
+
+    private IEnumerator WaitForBallToStop()
+    {
+        waitingForBallToStop = true;
+
+        // Chờ physics xử lý cú đánh
+        yield return new WaitForFixedUpdate();
+
+        while (true)
+        {
+            bool allBallsStopped = true;
+
+            GameObject[] balls =
+                GameObject.FindGameObjectsWithTag("Ball");
+
+            foreach (GameObject ballObject in balls)
+            {
+                if (!ballObject.activeInHierarchy)
+                    continue;
+
+                BallPhysics ballPhysics =
+                    ballObject.GetComponent<BallPhysics>();
+
+                if (ballPhysics == null)
+                    continue;
+
+                if (!ballPhysics.IsStopped())
+                {
+                    allBallsStopped = false;
+                    break;
+                }
+            }
+
+            if (allBallsStopped)
+            {
+                break;
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        // Chờ thêm một chút
+        yield return new WaitForSeconds(stopDelay);
+
+        // =====================================
+        // KIỂM TRA CUE BALL
+        // =====================================
+
+        if (cueBallController != null &&
+            !cueBallController.gameObject.activeInHierarchy)
+        {
+            Debug.Log(
+                "CueBall bị pocket → Respawn."
+            );
+
+            cueBallController.Respawn();
+        }
+
+        // =====================================
+        // HIỆN CUE
+        // =====================================
+
+        waitingForBallToStop = false;
+
+        if (cue != null)
+        {
+            cue.ShowCue();
+        }
+
+        // =====================================
+        // ĐỔI LƯỢT
+        // =====================================
+
+        if (turnManager != null)
+        {
+            turnManager.SwitchTurn();
+        }
+
+        Debug.Log(
+            "Tất cả bi đã dừng → Đổi lượt."
+        );
     }
 }

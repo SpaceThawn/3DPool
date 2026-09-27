@@ -60,8 +60,52 @@ public class CueController : MonoBehaviour
 
     private bool cueVisible = true;
 
+    private TurnManager.PlayerTurn lastTurn;
+
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public TurnManager.PlayerTurn playerTurn;
+
+    private void Start()
+    {
+        if (turnManager != null)
+        {
+            lastTurn = turnManager.currentTurn;
+
+            if (!turnManager.IsMyTurn(playerTurn))
+            {
+                HideCue();
+            }
+        }
+    }
+
     private void Update()
     {
+        if (turnManager == null)
+            return;
+
+        // ========================================
+        // TURN CHANGED
+        // ========================================
+
+        if (lastTurn != turnManager.currentTurn)
+        {
+            lastTurn = turnManager.currentTurn;
+
+            if (turnManager.IsMyTurn(playerTurn))
+            {
+                ShowCue();
+            }
+            else
+            {
+                HideCue();
+            }
+        }
+
+        // Không phải lượt của mình
+        if (!turnManager.IsMyTurn(playerTurn))
+            return;
+
         if (ball == null)
             return;
 

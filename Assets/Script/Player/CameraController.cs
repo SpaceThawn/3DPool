@@ -54,8 +54,25 @@ public class CameraController : MonoBehaviour
     private float yaw;
     private float pitch = 15f;
 
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public Transform player1CameraTarget;
+    public Transform player2CameraTarget;
+
     private void LateUpdate()
     {
+        if (turnManager != null)
+        {
+            if (turnManager.IsPlayer1Turn())
+            {
+                target = player1CameraTarget;
+            }
+            else
+            {
+                target = player2CameraTarget;
+            }
+        }
+
         if (target == null)
             return;
 

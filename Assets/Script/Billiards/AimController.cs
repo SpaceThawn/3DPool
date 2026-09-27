@@ -27,6 +27,10 @@ public class AimController : MonoBehaviour
     [Header("Mouse Look")]
     public float rotationSpeed = 100f;
 
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public TurnManager.PlayerTurn playerTurn;
+
     private bool cursorLocked = false;
 
     private void Start()
@@ -36,6 +40,12 @@ public class AimController : MonoBehaviour
 
     private void Update()
     {
+        if (turnManager == null)
+            return;
+
+        if (!turnManager.IsMyTurn(playerTurn))
+            return;
+
         if (Mouse.current == null)
             return;
 

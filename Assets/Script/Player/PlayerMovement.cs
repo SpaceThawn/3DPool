@@ -42,6 +42,10 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed = 5f;
     public float rotationSpeed = 10f;
 
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public TurnManager.PlayerTurn playerTurn;
+
     private CharacterController controller;
     private Camera mainCamera;
 
@@ -53,6 +57,12 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (turnManager == null)
+            return;
+
+        if (!turnManager.IsMyTurn(playerTurn))
+            return;
+
         Vector2 input = Vector2.zero;
 
         if (Keyboard.current.wKey.isPressed)
