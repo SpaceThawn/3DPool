@@ -38,7 +38,7 @@ public class CameraController : MonoBehaviour
 
         transform.LookAt(target.position + Vector3.up * 1f);
     }
-}*/
+}*//*
 
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -114,6 +114,134 @@ public class CameraController : MonoBehaviour
             target.position +
             direction * distance +
             Vector3.up * height;
+
+        transform.LookAt(
+            target.position
+        );
+    }
+}*/
+
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class CameraController : MonoBehaviour
+{
+    public Transform target;
+
+    public float distance = 4f;
+    public float height = 2.5f;
+    public float sensitivity = 0.2f;
+
+    private float yaw;
+    private float pitch = 15f;
+
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public Transform player1CameraTarget;
+    public Transform player2CameraTarget;
+
+    private void LateUpdate()
+    {
+        // =========================================
+        // CHỌN CAMERA TARGET THEO LƯỢT
+        // =========================================
+
+        if (turnManager != null)
+        {
+            if (turnManager.IsPlayer1Turn())
+            {
+                target =
+                    player1CameraTarget;
+            }
+            else
+            {
+                target =
+                    player2CameraTarget;
+            }
+        }
+
+        if (target == null)
+            return;
+
+        // =========================================
+        // KIỂM TRA CHUỘT
+        // =========================================
+
+        if (Mouse.current == null)
+            return;
+
+        bool leftPressed =
+            Mouse.current.leftButton.isPressed;
+
+        bool rightPressed =
+            Mouse.current.rightButton.isPressed;
+
+        // =========================================
+        // XOAY CAMERA
+        // =========================================
+        //
+        // Không giữ chuột phải:
+        //     Camera có thể xoay.
+        //
+        // Giữ chuột phải:
+        //     Camera đứng yên để đặt CueBall.
+        //
+        // Khi giữ chuột trái:
+        //     Camera cũng đứng yên để kéo cơ ổn định.
+        //
+
+        bool canRotateCamera =
+            !rightPressed &&
+            !leftPressed;
+
+        if (canRotateCamera)
+        {
+            Vector2 mouseDelta =
+                Mouse.current.delta.ReadValue();
+
+            yaw +=
+                mouseDelta.x *
+                sensitivity;
+
+            pitch -=
+                mouseDelta.y *
+                sensitivity;
+
+            pitch =
+                Mathf.Clamp(
+                    pitch,
+                    -10f,
+                    60f
+                );
+        }
+
+        // =========================================
+        // TÍNH CAMERA ROTATION
+        // =========================================
+
+        Quaternion rotation =
+            Quaternion.Euler(
+                pitch,
+                yaw,
+                0f
+            );
+
+        Vector3 direction =
+            rotation *
+            Vector3.back;
+
+        // =========================================
+        // CAMERA POSITION
+        // =========================================
+
+        transform.position =
+            target.position +
+            direction * distance +
+            Vector3.up * height;
+
+        // =========================================
+        // CAMERA LOOK AT
+        // =========================================
 
         transform.LookAt(
             target.position

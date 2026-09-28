@@ -110,7 +110,8 @@ public class BallRack : MonoBehaviour
                 ball.name = "Ball_" + rackNumbers[ballIndex];
 
                 // Lấy dữ liệu của quả bi
-                BallData ballData = ball.GetComponent<BallData>();
+                BallData ballData =
+                    ball.GetComponent<BallData>();
 
                 if (ballData != null)
                 {
@@ -133,6 +134,14 @@ public class BallRack : MonoBehaviour
                     {
                         ballData.ballType =
                             BallType.Stripe;
+                    }
+
+                    RuleManager ruleManager =
+                        FindAnyObjectByType<RuleManager>();
+
+                    if (ruleManager != null)
+                    {
+                        ruleManager.RegisterBall(ballData);
                     }
                 }
 
