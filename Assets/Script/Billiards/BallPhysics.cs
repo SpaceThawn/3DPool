@@ -233,6 +233,25 @@ public class BallPhysics : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        BallData thisBallData = GetComponent<BallData>();
+
+        BallData otherBallData = collision.gameObject.GetComponent<BallData>();
+
+        if (thisBallData != null &&
+            thisBallData.IsCueBall() &&
+            otherBallData != null)
+        {
+            RuleManager ruleManager =
+                FindAnyObjectByType<RuleManager>();
+
+            if (ruleManager != null)
+            {
+                ruleManager.RegisterCueBallHit(
+                    otherBallData
+                );
+            }
+        }
+
         Rigidbody otherRb = collision.rigidbody;
 
         Debug.Log(

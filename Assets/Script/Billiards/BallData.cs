@@ -8,23 +8,14 @@ public class BallData : MonoBehaviour
     [Range(0, 15)]
     public int ballNumber;
 
-    public bool IsCueBall()
-    {
-        return ballType == BallType.CueBall;
-    }
+    [Header("State")]
+    public bool isPocketed = false;
 
-    public bool IsSolid()
-    {
-        return ballType == BallType.Solid;
-    }
+    public bool IsCueBall() => ballType == BallType.CueBall;
 
-    public bool IsStripe()
-    {
-        return ballType == BallType.Stripe;
-    }
+    public bool IsSolid() => ballType == BallType.Solid;
 
-    public bool IsEightBall()
-    {
-        return ballType == BallType.EightBall;
-    }
+    public bool IsStripe() => ballType == BallType.Stripe;
+
+    public bool IsEightBall() => ballType == BallType.EightBall;
 }

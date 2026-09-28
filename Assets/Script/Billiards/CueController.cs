@@ -58,24 +58,26 @@ public class CueController : MonoBehaviour
 
     private float power = 0f;
 
-    private bool cueVisible = true;
+    private bool cueVisible = false;
 
     private TurnManager.PlayerTurn lastTurn;
 
     [Header("Turn")]
     public TurnManager turnManager;
+
     public TurnManager.PlayerTurn playerTurn;
+
+    private ShotController shotController;
 
     private void Start()
     {
+        HideCue();
+
+        shotController = GetComponentInParent<ShotController>();
+
         if (turnManager != null)
         {
             lastTurn = turnManager.currentTurn;
-
-            if (!turnManager.IsMyTurn(playerTurn))
-            {
-                HideCue();
-            }
         }
     }
 
@@ -84,25 +86,19 @@ public class CueController : MonoBehaviour
         if (turnManager == null)
             return;
 
-        // ========================================
-        // TURN CHANGED
-        // ========================================
+        // =========================================
+        // ĐỔI LƯỢT
+        // =========================================
 
         if (lastTurn != turnManager.currentTurn)
         {
-            lastTurn = turnManager.currentTurn;
+            lastTurn =
+                turnManager.currentTurn;
 
-            if (turnManager.IsMyTurn(playerTurn))
-            {
-                ShowCue();
-            }
-            else
-            {
-                HideCue();
-            }
+            // Không tự hiện Cue.
+            HideCue();
         }
 
-        // Không phải lượt của mình
         if (!turnManager.IsMyTurn(playerTurn))
             return;
 
@@ -112,27 +108,81 @@ public class CueController : MonoBehaviour
         if (transform.parent == null)
             return;
 
-        if (!cueVisible)
-            return;
-
         if (Mouse.current == null)
             return;
 
-        // ================================
-        // POWER
-        // ================================
+        // =====================================================
+        // RIGHT đang được giữ → không xử lý LEFT
+        // =====================================================
+
+        if (Mouse.current.rightButton.isPressed)
+            return;
+
+        RuleManager ruleManager =
+            FindAnyObjectByType<RuleManager>();
+
+        if (ruleManager != null)
+        {
+            // =====================================
+            // ĐANG BALL IN HAND
+            // NHƯNG CHƯA ĐẶT BI
+            // =====================================
+
+            if (ruleManager.IsBallInHand() &&
+                !ruleManager.IsCueBallPlaced())
+            {
+                HideCue();
+                return;
+            }
+        }
+
+        // =====================================================
+        // Shot đang diễn ra → không được hiện lại Cue
+        // =====================================================
+
+        if (shotController != null &&
+            shotController.IsShotInProgress())
+        {
+            HideCue();
+            return;
+        }
+
+        // =========================================
+        // NHẤN CHUỘT TRÁI
+        // =========================================
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            ShowCue();
+        }
+
+        // =========================================
+        // GIỮ CHUỘT TRÁI
+        // =========================================
 
         if (Mouse.current.leftButton.isPressed)
         {
+            if (!cueVisible)
+            {
+                ShowCue();
+            }
+
             HandlePower();
         }
 
-        // ================================
-        // CUE POSITION
-        // ================================
+        // =========================================
+        // CHỈ CẬP NHẬT CƠ KHI ĐANG HIỆN
+        // =========================================
 
-        UpdateCuePosition();
+        if (cueVisible)
+        {
+            UpdateCuePosition();
+        }
     }
+
+    // =========================================================
+    // POWER
+    // =========================================================
 
     private void HandlePower()
     {
@@ -156,9 +206,9 @@ public class CueController : MonoBehaviour
         power = 0f;
     }
 
-    // ========================================
-    // HIDE
-    // ========================================
+    // =========================================================
+    // HIDE CUE
+    // =========================================================
 
     public void HideCue()
     {
@@ -172,9 +222,9 @@ public class CueController : MonoBehaviour
         }
     }
 
-    // ========================================
-    // SHOW
-    // ========================================
+    // =========================================================
+    // SHOW CUE
+    // =========================================================
 
     public void ShowCue()
     {
@@ -193,13 +243,24 @@ public class CueController : MonoBehaviour
         return cueVisible;
     }
 
-    // ========================================
-    // POSITION
-    // ========================================
+    public void RefreshCuePosition()
+    {
+        if (!cueVisible)
+            return;
+
+        UpdateCuePosition();
+    }
+
+    // =========================================================
+    // CUE POSITION
+    // =========================================================
 
     private void UpdateCuePosition()
     {
         if (ball == null)
+            return;
+
+        if (transform.parent == null)
             return;
 
         Transform player =
@@ -224,12 +285,14 @@ public class CueController : MonoBehaviour
 
         directionToBall.y = 0f;
 
-        if (directionToBall.sqrMagnitude < 0.001f)
+        if (directionToBall.sqrMagnitude <
+            0.001f)
+        {
             return;
+        }
 
         directionToBall.Normalize();
 
-        // Kéo cơ về phía Player
         Vector3 pullBack =
             -directionToBall *
             (power * maxPullBack);
@@ -244,14 +307,14 @@ public class CueController : MonoBehaviour
         transform.position =
             finalPosition;
 
-        // Cơ luôn hướng về bi
         Vector3 lookDirection =
             ball.position -
             transform.position;
 
         lookDirection.y = 0f;
 
-        if (lookDirection.sqrMagnitude > 0.001f)
+        if (lookDirection.sqrMagnitude >
+            0.001f)
         {
             transform.rotation =
                 Quaternion.LookRotation(
