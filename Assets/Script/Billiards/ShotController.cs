@@ -430,7 +430,7 @@ public class ShotController : MonoBehaviour
 }
 */
 
-using System.Collections;
+/*using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -732,5 +732,264 @@ public class ShotController : MonoBehaviour
         // Không ShowCue ở đây.
         // Cue chỉ xuất hiện khi người chơi
         // nhấn giữ chuột trái.
+    }
+}*/
+
+
+using System.Collections;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class ShotController : MonoBehaviour
+{
+    public BallPhysics ball;
+    public CueController cue;
+
+    [Header("Force")]
+    public float minForce = 0f;
+    public float maxForce = 5f;
+
+    [Header("UI")]
+    public PowerBarUI powerBar;
+
+    [Header("Ball Stop")]
+    public float stopVelocity = 0.05f;
+    public float stopAngularVelocity = 0.05f;
+    public float stopDelay = 0.15f;
+
+    [Header("Turn")]
+    public TurnManager turnManager;
+    public TurnManager.PlayerTurn playerTurn;
+
+    [Header("Rule")]
+    public RuleManager ruleManager;
+
+    [Header("Ball Placement")]
+    public BallPlacementController ballPlacementController;
+
+    private bool waitingForBallToStop = false;
+
+    public bool IsShotInProgress()
+    {
+        return waitingForBallToStop;
+    }
+
+    private void Start()
+    {
+        if (ballPlacementController == null)
+        {
+            ballPlacementController =
+                FindAnyObjectByType<BallPlacementController>();
+        }
+    }
+
+    private void Update()
+    {
+        if (turnManager == null ||
+            ruleManager == null)
+        {
+            return;
+        }
+
+        if (ruleManager.gameOver)
+            return;
+
+        if (!turnManager.IsMyTurn(playerTurn))
+            return;
+
+        if (Mouse.current == null)
+            return;
+
+        // Khi giữ chuột phải để đặt CueBall,
+        // không xử lý thao tác đánh bằng chuột trái.
+        if (Mouse.current.rightButton.isPressed)
+            return;
+
+        if (ball == null || cue == null)
+            return;
+
+        if (waitingForBallToStop)
+            return;
+
+        // Chưa đặt CueBall thì không được bắn.
+        if (ruleManager.IsBallInHand() &&
+            !ruleManager.IsCueBallPlaced())
+        {
+            return;
+        }
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            cue.ShowCue();
+        }
+
+        if (Mouse.current.leftButton.isPressed)
+        {
+            UpdatePowerUI();
+        }
+
+        if (Mouse.current.leftButton.wasReleasedThisFrame)
+        {
+            Shoot();
+        }
+    }
+
+    private void UpdatePowerUI()
+    {
+        float power = cue.GetPowerPercent();
+
+        if (powerBar != null)
+            powerBar.SetPower(power);
+    }
+
+    private void Shoot()
+    {
+        if (waitingForBallToStop)
+            return;
+
+        float power = cue.GetPowerPercent();
+
+        Debug.Log(
+            "Release mouse - Power = " +
+            (power * 100f) + "%"
+        );
+
+        if (power <= 0.001f)
+        {
+            Debug.Log("Power = 0% → Không bắn.");
+            cue.HideCue();
+            return;
+        }
+
+        float force = Mathf.Lerp(
+            minForce,
+            maxForce,
+            power
+        );
+
+        Vector3 direction = cue.transform.forward;
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.001f)
+        {
+            Debug.Log("Direction không hợp lệ.");
+            cue.HideCue();
+            return;
+        }
+
+        direction.Normalize();
+
+        bool shotSuccessful = ball.Shoot(
+            direction,
+            force
+        );
+
+        if (!shotSuccessful)
+        {
+            Debug.Log(
+                "Shoot thất bại - Ball chưa stopped."
+            );
+
+            cue.HideCue();
+            return;
+        }
+
+        // Cú đánh đã thực sự thành công.
+        // Chỉ lúc này mới bỏ giới hạn vùng break.
+        if (ballPlacementController != null)
+        {
+            ballPlacementController.CompleteBreakPlacement();
+        }
+
+        ruleManager.BeginShot();
+        ruleManager.ConfirmShotStarted();
+
+        cue.HideCue();
+        cue.ResetPower();
+
+        if (powerBar != null)
+            powerBar.SetPower(0f);
+
+        StartCoroutine(WaitForBallToStop());
+    }
+
+    private IEnumerator WaitForBallToStop()
+    {
+        waitingForBallToStop = true;
+
+        yield return new WaitForFixedUpdate();
+
+        while (true)
+        {
+            bool allBallsStopped = true;
+
+            GameObject[] balls =
+                GameObject.FindGameObjectsWithTag("Ball");
+
+            foreach (GameObject ballObject in balls)
+            {
+                if (!ballObject.activeInHierarchy)
+                    continue;
+
+                BallPhysics ballPhysics =
+                    ballObject.GetComponent<BallPhysics>();
+
+                if (ballPhysics == null)
+                    continue;
+
+                if (!ballPhysics.IsStopped())
+                {
+                    allBallsStopped = false;
+                    break;
+                }
+            }
+
+            if (allBallsStopped)
+                break;
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        yield return new WaitForSeconds(stopDelay);
+
+        if (ruleManager.gameOver)
+        {
+            Debug.Log(
+                "GAME OVER → Không đổi lượt."
+            );
+
+            waitingForBallToStop = false;
+            yield break;
+        }
+
+        if (ruleManager.IsShotFoul())
+        {
+            Debug.Log(
+                "FOUL → Đổi lượt + Ball in Hand."
+            );
+
+            ruleManager.PrepareBallInHandForNextPlayer();
+
+            waitingForBallToStop = false;
+            yield break;
+        }
+
+        if (ruleManager.ShouldContinueTurn())
+        {
+            Debug.Log(
+                turnManager.currentTurn +
+                " tiếp tục lượt."
+            );
+        }
+        else
+        {
+            turnManager.SwitchTurn();
+
+            Debug.Log(
+                "Không có pocket hợp lệ → Đổi lượt."
+            );
+        }
+
+        waitingForBallToStop = false;
     }
 }
